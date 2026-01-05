@@ -1,7 +1,15 @@
 using MedicalDoctorRecommender.Data;
+using MedicalDoctorRecommender.Services;
+using MedicalDoctorRecommender.Services.Doctors;
+using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// =====================
+// LOAD .env
+// =====================
+Env.Load();
 
 // =====================
 // SERVICES
@@ -10,26 +18,30 @@ var builder = WebApplication.CreateBuilder(args);
 // MVC
 builder.Services.AddControllersWithViews();
 
-// DbContext (THIS is what you were missing)
+// DbContext (from .env)
+var connectionString =
+    Environment.GetEnvironmentVariable("DB_CONNECTION")
+    ?? throw new Exception("DB_CONNECTION not found in .env");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions =>
-        {
-            sqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(10),
-                errorNumbersToAdd: null);
-        }));
+        connectionString,
+        sql => sql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null)));
 
-
-// Session (you are using Session everywhere)
+// Session
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+
+// LLM + Doctors
+builder.Services.AddHttpClient<GroqLLMService>();
+builder.Services.AddScoped<DoctorRecommendationService>();
 
 var app = builder.Build();
 

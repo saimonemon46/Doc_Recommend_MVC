@@ -1,7 +1,5 @@
 ﻿using MedicalDoctorRecommender.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Reflection.Emit;
 
 namespace MedicalDoctorRecommender.Data
 {
@@ -21,6 +19,7 @@ namespace MedicalDoctorRecommender.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(u => u.Id);
+
                 entity.Property(u => u.Email)
                       .IsRequired()
                       .HasMaxLength(150);

@@ -1,0 +1,120 @@
+﻿@{
+    ViewData["Title"] = "Health Assistant Chat";
+}
+
+<style>
+    .chat-container {
+        max-width: 700px;
+        margin: 30px auto;
+        border: 1px solid #ccc;
+        padding: 15px;
+        border-radius: 6px;
+        background: #fafafa;
+    }
+
+    .chat-box {
+        height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        padding: 10px;
+        background: #fff;
+        margin-bottom: 10px;
+    }
+
+    .msg {
+        margin: 6px 0;
+    }
+
+    .user {
+        text-align: right;
+        color: #0b5ed7;
+    }
+
+    .bot {
+        text-align: left;
+        color: #333;
+    }
+
+    .input-row {
+        display: flex;
+        gap: 5px;
+    }
+
+    input[type="text"] {
+        flex: 1;
+        padding: 8px;
+    }
+
+    button {
+        padding: 8px 12px;
+    }
+</style>
+
+<div class="chat-container">
+    <h3>Health Assistant</h3>
+
+    <div id="chatBox" class="chat-box">
+        <div class="msg bot">
+            Please describe your symptoms.
+        </div>
+    </div>
+
+    <div class="input-row">
+        <input type="text" id="messageInput" placeholder="Type your response..." />
+        <button type="button" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    function appendMessage(text, sender) {
+        const box = document.getElementById("chatBox");
+        const msg = document.createElement("div");
+        msg.className = "msg " + sender;
+        msg.innerText = text;
+        box.appendChild(msg);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const text = input.value.trim();
+        if (!text) return;
+
+        appendMessage(text, "user");
+        input.value = "";
+
+        try {
+            const response = await fetch("/Chat/Send", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: "message=" + encodeURIComponent(text)
+            });
+
+            const data = await response.json();
+
+            if (Array.isArray(data)) {
+                appendMessage("Suggested doctors near you:", "bot");
+
+                data.forEach(d => {
+                    appendMessage(
+                        `${d.name ?? d.Name} (${d.speciality ?? d.Speciality}) - ${d.location ?? d.Location}`,
+                        "bot"
+                    );
+                });
+
+                appendMessage("End of consultation.", "bot");
+                disableInput();
+            } else {
+                appendMessage(data, "bot");
+            }
+        } catch (err) {
+            appendMessage("Something went wrong. Please try again.", "bot");
+        }
+    }
+
+    function disableInput() {
+        document.getElementById("messageInput").disabled = true;
+    }
+</script>
